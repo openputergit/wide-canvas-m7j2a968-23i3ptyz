@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceWise - Smart Price Comparison</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .search-animation {
+            animation: searchPulse 2s infinite;
+        }
+        @keyframes searchPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        .price-card:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .loading.active {
+            display: flex;
+        }
+        .dark {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50" id="body">
+    <!-- Loading Overlay -->
+    <div class="loading" id="loading">
+        <div class="flex flex-col items-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
+            <p class="mt-4 text-gray-600">Fetching best prices...</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <nav class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold text-blue-600">PriceWise</h1>
+                <div class="hidden md:flex space-x-6">
+                    <a href="#" class="text-gray-600 hover:text-blue-600">Home</a>
+                    <a href="#" class="text-gray-600 hover:text-blue-600">Categories</a>
+                    <a href="#" class="text-gray-600 hover:text-blue-600">Deals</a>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="darkModeToggle" class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="bi bi-moon text-xl"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="bi bi-heart text-xl"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="bi bi-person text-xl"></i>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="text-center mb-12">
+            <h2 class="text-4xl font-bold mb-4">Compare Prices Across Stores</h2>
+            <p class="text-gray-600 mb-8">Find the best deals on millions of products</p>
+            
+            <!-- Search Bar -->
+            <div class="max-w-2xl mx-auto search-animation">
+                <div class="relative">
+                    <input type="text" id="searchInput" 
+                           class="w-full px-6 py-4 rounded-full border-2 border-blue-500 focus:outline-none focus:border-blue-600 text-lg"
+                           placeholder="Search for any product...">
+                    <button onclick="handleSearch()" 
+                            class="absolute right-2 top-2 bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 transition-colors">
+                        Search
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Filters Sidebar -->
+                <div class="md:col-span-1 bg-white p-4 rounded-lg shadow">
+                    <h3 class="font-bold text-lg mb-4">Filters</h3>
+                    
+                    <!-- Price Range -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Price Range</label>
+                        <input type="range" min="0" max="100000" class="w-full" id="priceRange">
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>₹0</span>
+                            <span id="priceValue">₹50000</span>
+                        </div>
+                    </div>
+
+                    <!-- Stores -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Stores</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="form-checkbox">
+                                <span class="ml-2">Amazon</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="form-checkbox">
+                                <span class="ml-2">Flipkart</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="form-checkbox">
+                                <span class="ml-2">Myntra</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="form-checkbox">
+                                <span class="ml-2">Ajio</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Rating -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Minimum Rating</label>
+                        <select class="w-full p-2 border rounded">
+                            <option>Any Rating</option>
+                            <option>4+ Stars</option>
+                            <option>3+ Stars</option>
+                            <option>2+ Stars</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Results Grid -->
+                <div class="md:col-span-3" id="resultsGrid"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-bold mb-4">About PriceWise</h3>
+                    <p class="text-gray-400">Find the best deals across multiple stores in one place.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Quick Links</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Home</a></li>
+                        <li><a href="#" class="hover:text-white">Categories</a></li>
+                        <li><a href="#" class="hover:text-white">Deals</a></li>
+                        <li><a href="#" class="hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Support</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">FAQs</a></li>
+                        <li><a href="#" class="hover:text-white">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Connect With Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="bi bi-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
+                <p>&copy; 2024 PriceWise. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Sample product data (simulate API response)
+        const sampleProducts = [
+            {
+                id: 1,
+                name: "iPhone 13 Pro",
+                image: "https://images.unsplash.com/photo-1632661674596-df3906398248?w=400",
+                prices: [
+                    { store: "Amazon", price: 89999, logo: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Amazon_icon.svg" },
+                    { store: "Flipkart", price: 90999, logo: "https://upload.wikimedia.org/wikipedia/commons/7/7a/Flipkart_logo.svg" },
+                    { store: "Croma", price: 91999, logo: "https://d2d22nphq0yz8t.cloudfront.net/88e6cc4b-eaa1-4053-af65-563d88ba8b26/https://media.croma.com/image/upload/v1637759004/Croma%20Assets/CMS/Categories/croma_logo_w6ZVch.png" }
+                ],
+                rating: 4.8
+            },
+            {
+                id: 2,
+                name: "Samsung Galaxy S21",
+                image: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400",
+                prices: [
+                    { store: "Amazon", price: 69999, logo: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Amazon_icon.svg" },
+                    { store: "Flipkart", price: 68999, logo: "https://upload.wikimedia.org/wikipedia/commons/7/7a/Flipkart_logo.svg" }
+                ],
+                rating: 4.5
+            }
+        ];
+
+        // Handle search functionality
+        function handleSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const loading = document.getElementById('loading');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsGrid = document.getElementById('resultsGrid');
+
+            if (!searchInput.value.trim()) return;
+
+            // Show loading
+            loading.classList.add('active');
+            
+            // Simulate API call
+            setTimeout(() => {
+                // Hide loading
+                loading.classList.remove('active');
+                
+                // Show results section
+                resultsSection.classList.remove('hidden');
+
+                // Clear previous results
+                resultsGrid.innerHTML = '';
+
+                // Display results
+                sampleProducts.forEach(product => {
+                    const lowestPrice = Math.min(...product.prices.map(p => p.price));
+                    
+                    const productCard = `
+                        <div class="bg-white rounded-lg shadow-md p-4 mb-4 price-card">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover rounded-lg mb-4">
+                            <h3 class="font-bold text-lg mb-2">${product.name}</h3>
+                            <div class="flex items-center mb-2">
+                                <i class="bi bi-star-fill text-yellow-400"></i>
+                                <span class="ml-1">${product.rating}</span>
+                            </div>
+                            <div class="text-xl font-bold text-green-600 mb-4">
+                                Best Price: ₹${lowestPrice.toLocaleString()}
+                            </div>
+                            <div class="space-y-2">
+                                ${product.prices.map(price => `
+                                    <div class="flex items-center justify-between p-2 border rounded">
+                                        <div class="flex items-center">
+                                            <img src="${price.logo}" alt="${price.store}" class="h-6 w-6 object-contain">
+                                            <span class="ml-2">₹${price.price.toLocaleString()}</span>
+                                        </div>
+                                        <a href="#" class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition-colors">
+                                            Buy Now
+                                        </a>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    
+                    resultsGrid.innerHTML += productCard;
+                });
+            }, 1500);
+        }
+
+        // Price range slider
+        const priceRange = document.getElementById('priceRange');
+        const priceValue = document.getElementById('priceValue');
+        
+        priceRange.addEventListener('input', (e) => {
+            priceValue.textContent = `₹${e.target.value}`;
+        });
+
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const body = document.getElementById('body');
+        
+        darkModeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark');
+            const icon = darkModeToggle.querySelector('i');
+            if (body.classList.contains('dark')) {
+                icon.classList.remove('bi-moon');
+                icon.classList.add('bi-sun');
+            } else {
+                icon.classList.remove('bi-sun');
+                icon.classList.add('bi-moon');
+            }
+        });
+
+        // Handle Enter key in search
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
